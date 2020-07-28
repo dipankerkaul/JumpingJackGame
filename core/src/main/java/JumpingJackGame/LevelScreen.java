@@ -8,6 +8,8 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.Gdx;
+import java.util.ArrayList;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 
 
 public class LevelScreen extends BaseScreen
@@ -19,6 +21,7 @@ public class LevelScreen extends BaseScreen
     Table keyTable;
     Label timeLabel;
     Label messageLabel;
+    ArrayList<Color> keyList;
 
     public void initialize() 
     {   TilemapActor tma = new TilemapActor("map.tmx", mainStage);
@@ -77,6 +80,30 @@ public class LevelScreen extends BaseScreen
             new Platform( (float)props.get("x"), (float)props.get("y"), mainStage );
         }
 
+        keyList = new ArrayList<Color>();
+        for (MapObject obj : tma.getTileList("Key") )
+        {
+            MapProperties props = obj.getProperties();
+            Key key = new Key( (float)props.get("x"), (float)props.get("y"), mainStage );
+            String color = (String)props.get("color");
+            if ( color.equals("red") )
+                key.setColor(Color.RED);
+
+        else // default color
+            key.setColor(Color.WHITE);
+        }
+        for (MapObject obj : tma.getTileList("Lock") )
+        {
+            MapProperties props = obj.getProperties();
+            Lock lock = new Lock( (float)props.get("x"), (float)props.get("y"), mainStage );
+            String color = (String)props.get("color");
+            if ( color.equals("red") )
+                lock.setColor(Color.RED);
+            else // default color
+                lock.setColor(Color.WHITE);
+        }
+
+
 
     }
 
@@ -94,6 +121,17 @@ public class LevelScreen extends BaseScreen
 
                 if ( jack.isFalling() && !jack.overlaps(solid) && !jack.belowOverlaps(solid) )
                     solid.setEnabled(true);
+            }
+
+            if ( solid instanceof Lock && jack.overlaps(solid) )
+            {
+                Color lockColor = solid.getColor();
+                if ( keyList.contains(lockColor) )
+                {
+                    solid.setEnabled(false);
+                    solid.addAction( Actions.fadeOut(0.5f) );
+                    solid.addAction( Actions.after( Actions.removeActor() ) );
+                }
             }
             if ( jack.overlaps(solid) && solid.isEnabled() )
             {
@@ -150,6 +188,20 @@ public class LevelScreen extends BaseScreen
             messageLabel.setVisible(true);
             jack.remove();
             gameOver = true;
+        }
+
+        for (BaseActor key : BaseActor.getList(mainStage, Key.class))
+        {
+            if ( jack.overlaps(key) )
+            {
+                Color keyColor = key.getColor();
+                key.remove();
+                BaseActor keyIcon = new BaseActor(0,0,uiStage);
+                keyIcon.loadTexture("key-icon.png");
+                keyIcon.setColor(keyColor);
+                keyTable.add(keyIcon);
+                keyList.add(keyColor);
+            }
         }
        
     }
